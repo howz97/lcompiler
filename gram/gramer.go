@@ -21,20 +21,20 @@ type gramer struct {
 	idx           int
 	left          string
 	right         [][]*gramChar
-	firstSet      *bitmap.BitMap
-	followSet     *bitmap.BitMap
+	firstSet      sets
+	followSet     sets
 	holdFollowSet bool
 
 	lang map[string]*gramer // TODO: 设计有问题；为嘛存这个？ 应该把[][]*gramChar换成[][]*gramer 使gramer代表终结符与非终结符
 }
 
-func (g *gramer) getFirstSet() *bitmap.BitMap {
+func (g *gramer) getFirstSet() sets {
 	if g.firstSet == nil {
-		g.firstSet = bitmap.NewBitMap(uint32(len(lex.CodeMap) + 1))
+		g.newFirstSet()
 	} else {
 		return g.firstSet
 	}
-	for _, partRight := range g.right {
+	for i0, partRight := range g.right {
 		// switch true {
 		// case partRight[0].isTerminal && partRight[0].t == term["ε"]:
 		// 	g.firstSet.Or(g.getFollowSet().ByteSlice)
@@ -43,17 +43,60 @@ func (g *gramer) getFirstSet() *bitmap.BitMap {
 		// default:
 		// 	g.firstSet.Or(g.lang[partRight[0].nt].getFirstSet().ByteSlice)
 		// }
-		g.firstSet.Set(uint32(lex.CodeMap["ε"]))
-		for i := 0; i < len(partRight) && g.firstSet.Check(uint32(lex.CodeMap["ε"])); i++ {
-			g.firstSet.Unset(uint32(lex.CodeMap["ε"]))
+		g.firstSet.add(i0, lex.CodeMap["ε"])
+		for i := 0; i < len(partRight) && g.firstSet.where(lex.CodeMap["ε"]) >= 0; i++ {
+			g.firstSet.remove(lex.CodeMap["ε"])
 			if partRight[i].isTerminal {
-				g.firstSet.Set(uint32(partRight[i].t))
+				g.firstSet.add(i0, partRight[i].t)
 			} else {
-				g.firstSet.Or(g.lang[partRight[i].nt].getFirstSet().ByteSlice)
+				g.firstSet.or(i0, g.lang[partRight[i].nt].getFirstSet())
 			}
 		}
 	}
 	return g.firstSet
+}
+
+type sets []*bitmap.BitMap
+
+func (g *gramer) newFirstSet() {
+	firstSet := make([]*bitmap.BitMap, len(g.right))
+	for i := range firstSet {
+		firstSet[i] = bitmap.NewBitMap(uint32(len(lex.CodeMap) + 1))
+	}
+	g.firstSet = sets(firstSet)
+}
+
+func (g *gramer) newFollowSet() {
+	followSet := make([]*bitmap.BitMap, 1)
+	followSet[0] = bitmap.NewBitMap(uint32(len(lex.CodeMap) + 1))
+	g.followSet = sets(followSet)
+}
+
+func (s sets) add(idx int, v int) {
+	s[idx].Set(uint32(v))
+}
+
+func (s sets) or(idx int, ss sets) {
+	for i := range ss {
+		s[idx].Or(ss[i].ByteSlice)
+	}
+}
+
+func (s sets) where(v int) int {
+	w := -1
+	for i := range s {
+		if s[i].Check(uint32(v)) {
+			w = i
+			break
+		}
+	}
+	return w
+}
+
+func (s sets) remove(v int) {
+	for i := range s {
+		s[i].Unset(uint32(v))
+	}
 }
 
 func (al *Analyser) getAllFollowSet() {
@@ -63,6 +106,7 @@ func (al *Analyser) getAllFollowSet() {
 	al.lang["变量说明"].getFollowSet()
 	al.lang["变量定义"].getFollowSet()
 	al.lang["标识符表"].getFollowSet()
+	al.lang["额外标识符"].getFollowSet()
 	al.lang["复合句"].getFollowSet()
 	al.lang["语句表"].getFollowSet()
 	al.lang["执行句"].getFollowSet()
@@ -88,21 +132,20 @@ func (al *Analyser) getAllFollowSet() {
 	al.lang["布尔项'"].getFollowSet()
 	al.lang["布尔因子"].getFollowSet()
 	al.lang["布尔量"].getFollowSet()
+	al.lang["标识符或关系表达式"].getFollowSet()
 	al.lang["关系表达式"].getFollowSet()
 	al.lang["关系运算符"].getFollowSet()
 	al.lang["类型名"].getFollowSet()
 	al.lang["布尔常数"].getFollowSet()
 }
 
-func (g *gramer) getFollowSet() *bitmap.BitMap {
+func (g *gramer) getFollowSet() sets {
 	if g.holdFollowSet {
 		return g.followSet
 	}
-	g.followSet = bitmap.NewBitMap(uint32(len(lex.CodeMap) + 1))
+	g.newFollowSet()
 	if g.left == "程序" {
-		fmt.Println("生成 程序 的follow集")
-		g.followSet.Set(uint32(lex.CodeMap["#"]))
-		fmt.Println("生成成功？", g.followSet.Check(uint32(lex.CodeMap["#"])))
+		g.followSet.add(0, lex.CodeMap["#"])
 		return g.followSet
 	}
 	// force traversal
@@ -120,21 +163,18 @@ func (g *gramer) getFollowSet() *bitmap.BitMap {
 					if i == len(partGram)-1 {
 						if gram.left != gramc.nt && !isSkip(g, gram) {
 							fmt.Println("加入", gram.left, "的follow集")
-							g.followSet.Or(gram.getFollowSet().ByteSlice)
-							if gram.left == "程序" {
-								fmt.Println(gram.getFollowSet().Check(uint32(lex.CodeMap["#"])))
-							}
+							g.followSet.or(0, gram.getFollowSet())
 						}
 					} else {
 						if partGram[i+1].isTerminal {
 							fmt.Println("加入", partGram[i+1].t)
-							g.followSet.Set(uint32(partGram[i+1].t))
+							g.followSet.add(0, partGram[i+1].t)
 						} else {
 							fmt.Println("加入", partGram[i+1].nt, "的first集")
-							g.followSet.Or(g.lang[partGram[i+1].nt].getFirstSet().ByteSlice)
-							if g.lang[partGram[i+1].nt].getFirstSet().Check(uint32(lex.CodeMap["ε"])) && !isSkip(g, g.lang[partGram[i+1].nt]) {
+							g.followSet.or(0, g.lang[partGram[i+1].nt].getFirstSet())
+							if g.lang[partGram[i+1].nt].getFirstSet().where(lex.CodeMap["ε"]) >= 0 && !isSkip(g, g.lang[partGram[i+1].nt]) {
 								fmt.Println("加入", partGram[i+1].nt, "的follow集")
-								g.followSet.Or(g.lang[partGram[i+1].nt].getFollowSet().ByteSlice)
+								g.followSet.or(0, g.lang[partGram[i+1].nt].getFollowSet())
 							}
 						}
 					}
@@ -146,33 +186,33 @@ func (g *gramer) getFollowSet() *bitmap.BitMap {
 	return g.followSet
 }
 
-func (g *gramer) whichFirstWith(f int) int {
-	for i, partGram := range g.right {
+// func (g *gramer) whichFirstWith(f int) int {
+// 	for i, partGram := range g.right {
 
-		// TODO: delete
-		// fmt.Println(g.idx, "meet", f, "case1", partGram[0].isTerminal && partGram[0].t == f, "case2", !partGram[0].isTerminal && g.lang[partGram[0].nt].firstSet.Check(uint32(f)))
-		// fmt.Println(g.idx, "meet", f, partGram[0].isTerminal)
-		// fmt.Print(f, "->")
-		// if partGram[0].isTerminal {
-		// 	fmt.Println(partGram[0].t)
-		// } else {
-		// 	fmt.Println(partGram[0].nt)
-		// }
+// 		// TODO: delete
+// 		// fmt.Println(g.idx, "meet", f, "case1", partGram[0].isTerminal && partGram[0].t == f, "case2", !partGram[0].isTerminal && g.lang[partGram[0].nt].firstSet.Check(uint32(f)))
+// 		// fmt.Println(g.idx, "meet", f, partGram[0].isTerminal)
+// 		// fmt.Print(f, "->")
+// 		// if partGram[0].isTerminal {
+// 		// 	fmt.Println(partGram[0].t)
+// 		// } else {
+// 		// 	fmt.Println(partGram[0].nt)
+// 		// }
 
-		// to look shorter, use two if statment
-		if partGram[0].isTerminal && partGram[0].t == f {
-			// fmt.Printf("find terminal(%d) in %d", f, i)
-			return i
-		}
-		if !partGram[0].isTerminal {
-			// fmt.Printf("find nonterminal(%d) in %d", f, i)
-			panic("TODO")
-			g.lang[partGram[0].nt].getFirstSet().Check(uint32(f))
-			return i
-		}
-	}
-	panic(fmt.Sprintf("Can not find terminal(%d) in firse set of gramer(%s)", f, g.left))
-}
+// 		// to look shorter, use two if statment
+// 		if partGram[0].isTerminal && partGram[0].t == f {
+// 			// fmt.Printf("find terminal(%d) in %d", f, i)
+// 			return i
+// 		}
+// 		if !partGram[0].isTerminal {
+// 			// fmt.Printf("find nonterminal(%d) in %d", f, i)
+// 			panic("TODO")
+// 			g.lang[partGram[0].nt].getFirstSet().Check(uint32(f))
+// 			return i
+// 		}
+// 	}
+// 	panic(fmt.Sprintf("Can not find terminal(%d) in firse set of gramer(%s)", f, g.left))
+// }
 
 // formula position specify a gramer and the index.
 // gramer is made up of formulas
@@ -209,7 +249,7 @@ func (al *Analyser) PrintFirstSet() {
 	for k, gram := range al.lang {
 		fmt.Println(k + ":")
 		for i := 1; i <= len(lex.CodeMap); i++ {
-			if gram.firstSet.Check(uint32(i)) {
+			if gram.firstSet.where(i) >= 0 {
 				fmt.Print(i, "  ")
 			}
 		}
@@ -221,11 +261,11 @@ func (al *Analyser) PrintFollowSet() {
 	fmt.Println("**********************FOLLOW SET")
 	for k, gram := range al.lang {
 		if gram.followSet == nil {
-			panic("gram.followSet is nil")
+			panic(k + ".followSet is nil")
 		}
 		fmt.Println(k + ":")
 		for i := 1; i <= len(lex.CodeMap); i++ {
-			if gram.followSet.Check(uint32(i)) {
+			if gram.followSet.where(i) >= 0 {
 				fmt.Print(i, "  ")
 			}
 		}
@@ -322,16 +362,16 @@ func (al *Analyser) genForecastAnalyTbl(lang map[string]*gramer) {
 	for k, gram := range al.lang {
 		for j := 1; j < 39; j++ {
 			switch true {
-			case gram.firstSet.Check(uint32(j)):
+			case gram.firstSet.where(j) >= 0:
 				fp := &formuPst{
 					g:   k,
-					idx: gram.whichFirstWith(j),
+					idx: gram.firstSet.where(j),
 				}
 				al.forecastAnalyTbl[gram.idx][j] = fp
-			case gram.firstSet.Check(uint32(lex.CodeMap["ε"])) && gram.followSet.Check(uint32(j)):
+			case gram.firstSet.where(lex.CodeMap["ε"]) > 0 && gram.followSet.where(j) >= 0:
 				fp := &formuPst{
 					g:   k,
-					idx: gram.whichFirstWith(lex.CodeMap["ε"]),
+					idx: gram.firstSet.where(lex.CodeMap["ε"]),
 				}
 				al.forecastAnalyTbl[gram.idx][j] = fp
 			default:

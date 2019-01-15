@@ -88,7 +88,7 @@ func (g *gramer) willMeet(tgt string) bool {
 						}
 					} else {
 						if !partGram[i+1].isTerminal {
-							if g.lang[partGram[i+1].nt].getFirstSet().Check(uint32(lex.CodeMap["ε"])) {
+							if g.lang[partGram[i+1].nt].getFirstSet().where(lex.CodeMap["ε"]) > 0 {
 								if g.lang[partGram[i+1].nt].willMeet(tgt) {
 									return true
 								}
