@@ -1,8 +1,6 @@
 package gram
 
 import (
-	"fmt"
-
 	"github.com/zh1014/lcompiler/lex"
 )
 
@@ -22,12 +20,12 @@ func (as *analyStack) pushOne(gc *gramChar) {
 		panic("pushing nil gramChar to stack")
 	}
 
-	if gc.isTerminal {
-		fmt.Println("压入：", gc.t)
-	} else {
-		fmt.Println("压入：", gc.nt)
+	// if gc.isTerminal {
+	// 	fmt.Println("压入：", gc.t)
+	// } else {
+	// 	fmt.Println("压入：", gc.nt)
+	// }
 
-	}
 	as.chars[as.cap] = gc
 	as.cap++
 }
@@ -40,14 +38,6 @@ func (as *analyStack) push(gcs []*gramChar) {
 		return
 	}
 	for i := len(gcs) - 1; i >= 0; i-- {
-
-		// TODO: delete
-		// if gcs[i].isTerminal {
-		// 	fmt.Println(gcs[i].t)
-		// } else {
-		// 	fmt.Println(gcs[i].nt)
-		// }
-
 		as.pushOne(gcs[i])
 	}
 }

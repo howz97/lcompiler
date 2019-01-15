@@ -35,14 +35,6 @@ func (g *gramer) getFirstSet() sets {
 		return g.firstSet
 	}
 	for i0, partRight := range g.right {
-		// switch true {
-		// case partRight[0].isTerminal && partRight[0].t == term["ε"]:
-		// 	g.firstSet.Or(g.getFollowSet().ByteSlice)
-		// case partRight[0].isTerminal && partRight[0].t != term["ε"]:
-		// 	g.firstSet.Set(uint32(partRight[0].t))
-		// default:
-		// 	g.firstSet.Or(g.lang[partRight[0].nt].getFirstSet().ByteSlice)
-		// }
 		g.firstSet.add(i0, lex.CodeMap["ε"])
 		for i := 0; i < len(partRight) && g.firstSet.where(lex.CodeMap["ε"]) >= 0; i++ {
 			g.firstSet.remove(lex.CodeMap["ε"])
@@ -149,31 +141,28 @@ func (g *gramer) getFollowSet() sets {
 		return g.followSet
 	}
 	// force traversal
-	fmt.Println("。。。。。。开始找", g.left, "的follow集")
-	for k, gram := range g.lang {
-		if g.left == "else句" {
-			fmt.Println("//////////////继续找", g.left, "的follow集")
-		}
-		for i0, partGram := range gram.right {
+	// fmt.Println("。。。。。。开始找", g.left, "的follow集")
+	for _, gram := range g.lang {
+		for _, partGram := range gram.right {
 			for i, gramc := range partGram {
 				if !gramc.isTerminal && gramc.nt == g.left {
-					fmt.Println("乱序遍历到" + k + "开头这一行")
-					fmt.Println("找第", i0+1, "个短句")
-					fmt.Println("正在检测", gramc.nt)
+					// fmt.Println("乱序遍历到" + k + "开头这一行")
+					// fmt.Println("找第", i0+1, "个短句")
+					// fmt.Println("正在检测", gramc.nt)
 					if i == len(partGram)-1 {
 						if gram.left != gramc.nt && !isSkip(g, gram) {
-							fmt.Println("加入", gram.left, "的follow集")
+							// fmt.Println("加入", gram.left, "的follow集")
 							g.followSet.or(0, gram.getFollowSet())
 						}
 					} else {
 						if partGram[i+1].isTerminal {
-							fmt.Println("加入", partGram[i+1].t)
+							// fmt.Println("加入", partGram[i+1].t)
 							g.followSet.add(0, partGram[i+1].t)
 						} else {
-							fmt.Println("加入", partGram[i+1].nt, "的first集")
+							// fmt.Println("加入", partGram[i+1].nt, "的first集")
 							g.followSet.or(0, g.lang[partGram[i+1].nt].getFirstSet())
 							if g.lang[partGram[i+1].nt].getFirstSet().where(lex.CodeMap["ε"]) >= 0 && !isSkip(g, g.lang[partGram[i+1].nt]) {
-								fmt.Println("加入", partGram[i+1].nt, "的follow集")
+								// fmt.Println("加入", partGram[i+1].nt, "的follow集")
 								g.followSet.or(0, g.lang[partGram[i+1].nt].getFollowSet())
 							}
 						}
@@ -185,34 +174,6 @@ func (g *gramer) getFollowSet() sets {
 	g.holdFollowSet = true
 	return g.followSet
 }
-
-// func (g *gramer) whichFirstWith(f int) int {
-// 	for i, partGram := range g.right {
-
-// 		// TODO: delete
-// 		// fmt.Println(g.idx, "meet", f, "case1", partGram[0].isTerminal && partGram[0].t == f, "case2", !partGram[0].isTerminal && g.lang[partGram[0].nt].firstSet.Check(uint32(f)))
-// 		// fmt.Println(g.idx, "meet", f, partGram[0].isTerminal)
-// 		// fmt.Print(f, "->")
-// 		// if partGram[0].isTerminal {
-// 		// 	fmt.Println(partGram[0].t)
-// 		// } else {
-// 		// 	fmt.Println(partGram[0].nt)
-// 		// }
-
-// 		// to look shorter, use two if statment
-// 		if partGram[0].isTerminal && partGram[0].t == f {
-// 			// fmt.Printf("find terminal(%d) in %d", f, i)
-// 			return i
-// 		}
-// 		if !partGram[0].isTerminal {
-// 			// fmt.Printf("find nonterminal(%d) in %d", f, i)
-// 			panic("TODO")
-// 			g.lang[partGram[0].nt].getFirstSet().Check(uint32(f))
-// 			return i
-// 		}
-// 	}
-// 	panic(fmt.Sprintf("Can not find terminal(%d) in firse set of gramer(%s)", f, g.left))
-// }
 
 // formula position specify a gramer and the index.
 // gramer is made up of formulas
@@ -239,13 +200,15 @@ func New(gramerfile string) *Analyser {
 // Analyse analyse the gramer of token file
 func (al *Analyser) Analyse(lexAl *lex.Analyser) []string {
 	if !al.isGramPass(lexAl) {
+		fmt.Println("\n=======================>>>>>>> Gramer Analysis: NOT PASS")
 		return nil
 	}
+	fmt.Println("\n=======================>>>>>>> Gramer Analysis: PASS!!!")
 	return nil
 }
 
 func (al *Analyser) PrintFirstSet() {
-	fmt.Println("**********************FIRST SET")
+	fmt.Println("\n\n<<<<<<<<<<<打印 FIRST SET>>>>>>>>>>>>")
 	for k, gram := range al.lang {
 		fmt.Println(k + ":")
 		for i := 1; i <= len(lex.CodeMap); i++ {
@@ -258,7 +221,7 @@ func (al *Analyser) PrintFirstSet() {
 }
 
 func (al *Analyser) PrintFollowSet() {
-	fmt.Println("**********************FOLLOW SET")
+	fmt.Println("\n\n<<<<<<<<<<<打印 FOLLOW SET>>>>>>>>>>>>")
 	for k, gram := range al.lang {
 		if gram.followSet == nil {
 			panic(k + ".followSet is nil")
@@ -274,8 +237,9 @@ func (al *Analyser) PrintFollowSet() {
 }
 
 func (al *Analyser) PrintFATbl() {
+	fmt.Println("\n\n<<<<<<<<<<<打印 预测分析表>>>>>>>>>>>>")
 	for k, gram := range al.lang {
-		fmt.Println("*************************" + k + ":")
+		fmt.Println("*****" + k + "*****")
 		for j := 1; j < 39; j++ {
 			if al.forecastAnalyTbl[gram.idx][j] != nil {
 				fmt.Println("遇到no.", j, "终结符，选择非终结符（", k, "）的第", al.forecastAnalyTbl[gram.idx][j].idx+1, "个右部产生式")
@@ -335,9 +299,6 @@ func (al *Analyser) parseGramer(gramerfile string) {
 					rightSli[j], na = parseTerm(rightSli[j])
 					gc.t = lex.CodeMap[na]
 					if gc.t == 0 {
-						// if na != "ε" {
-						// 	panic(na + " is not a terminal")
-						// }
 						gc.t = lex.CodeMap["ε"]
 					}
 					gc.isTerminal = true
@@ -356,7 +317,13 @@ func (al *Analyser) genForecastAnalyTbl(lang map[string]*gramer) {
 		gram.getFirstSet()
 	}
 
+	// TODO: print
+	al.PrintFirstSet()
+
 	al.getAllFollowSet()
+
+	// TODO: print
+	al.PrintFollowSet()
 
 	al.forecastAnalyTbl = [50][39]*formuPst{}
 	for k, gram := range al.lang {
@@ -378,6 +345,9 @@ func (al *Analyser) genForecastAnalyTbl(lang map[string]*gramer) {
 			}
 		}
 	}
+
+	// TODO: print
+	al.PrintFATbl()
 }
 
 func (al *Analyser) isGramPass(lexAl *lex.Analyser) bool {
@@ -391,25 +361,19 @@ func (al *Analyser) isGramPass(lexAl *lex.Analyser) bool {
 		isTerminal: false,
 	})
 
-	// TODO:
-	lexAl.PrintResult()
-	// al.PrintFATbl()
-	al.PrintFirstSet()
-	al.PrintFollowSet()
-
 	for top := stack.pop(); top != nil; top = stack.pop() {
 		if top.isTerminal {
-			fmt.Println("弹出：", top.t)
+			// fmt.Println("弹出：", top.t)
 			if !lexAl.IsTokenMatch(top.t) {
 				return false
 			}
 			continue
 		}
-		fmt.Println("弹出：", top.nt)
+		// fmt.Println("弹出：", top.nt)
 		nonTermIdx := al.lang[top.nt].idx
-		fmt.Print("找预测分析表："+top.nt, nonTermIdx, "行")
+		// fmt.Print("找预测分析表："+top.nt, nonTermIdx, "行")
 		termMachineCode := lexAl.NextCode()
-		fmt.Println(termMachineCode, "列")
+		// fmt.Println(termMachineCode, "列")
 		position := al.forecastAnalyTbl[nonTermIdx][termMachineCode]
 		if position == nil {
 			panic("position == nil")

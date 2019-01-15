@@ -15,21 +15,6 @@ func parseNTerm(raw string) (remain string, name string) {
 }
 
 func parseTerm(raw string) (remain string, name string) {
-	// if lex.IsLetter(raw[0]) {
-	// 	for i := 1; i < len(raw); i++ {
-	// 		if !lex.IsLetter(raw[i]) {
-	// 			return raw[i:], raw[:i]
-	// 		}
-	// 	}
-	// 	return "", raw
-	// }
-	// if len(raw) >= 2 && raw[:2] == ":=" {
-	// 	return raw[2:], raw[:2]
-	// }
-	// if raw == "ε" {
-	// 	return raw[2:], "ε"
-	// }
-	// return raw[1:], raw[:1]
 	if raw == "" {
 		panic("parseTerm: raw is empty")
 	}
@@ -38,9 +23,6 @@ func parseTerm(raw string) (remain string, name string) {
 			return raw[i:], raw[:i]
 		}
 	}
-	// if raw == "ε" {
-	// 	return "", "ε"
-	// }
 	panic("error not match")
 }
 

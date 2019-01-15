@@ -61,7 +61,7 @@ func (al *Analyser) Analyse(filename string) {
 	for al.frontIndex < len(al.sourceCode) {
 		al.scanStartWithAny()
 	}
-	al.PrintErr()
+	al.PrintResult()
 }
 
 // PrintResult print the result
@@ -75,13 +75,13 @@ func (al *Analyser) PrintResult() {
 
 func (al *Analyser) PrintErr() {
 	for i := 0; i < len(al.errs); i++ {
-		fmt.Printf("[%d]error ==> line %d: %s", al.errs[i].id, al.errs[i].row, al.errs[i].description)
+		fmt.Printf("ERROR[id=%d] >> line %d: %s", al.errs[i].id, al.errs[i].row, al.errs[i].description)
 		fmt.Println()
 	}
 	if len(al.errs) == 0 {
-		fmt.Println("Lexical analysis: PASS!!!")
+		fmt.Println("\n=======================>>>>>>> Lexical analysis: PASS!!!")
 	} else {
-		fmt.Printf("Lexical analysis: total %d errors", len(al.errs))
+		fmt.Printf("\n=======================>>>>>>> Lexical analysis: total %d errors", len(al.errs))
 	}
 }
 
@@ -119,7 +119,6 @@ func (al *Analyser) scanStartWithLetter() {
 		al.frontIndex++
 		al.scanStartWithLetter()
 	} else if !(IsLetter(al.sourceCode[al.frontIndex]) || isNumber(al.sourceCode[al.frontIndex])) {
-		// [lex.backwardIndex:lex.frontIndex] 来生成id token，
 		al.genToken(al.sourceCode[al.backwardIndex:al.frontIndex])
 		al.backwardIndex = al.frontIndex
 	} else if !isKeywords(al.sourceCode[al.backwardIndex : al.frontIndex+1]) {
@@ -129,7 +128,6 @@ func (al *Analyser) scanStartWithLetter() {
 		al.frontIndex++
 		al.scanStartWithLetter()
 	} else {
-		// [lex.backwardIndex:lex.frontIndex+1]生成keywords token，
 		al.genToken(al.sourceCode[al.backwardIndex : al.frontIndex+1])
 		al.frontIndex++
 		al.backwardIndex = al.frontIndex
@@ -148,7 +146,6 @@ func (al *Analyser) scanStartWithNumber() {
 	case al.sourceCode[al.frontIndex] == '.':
 		if !isNumber(al.sourceCode[al.frontIndex+1]) {
 			al.logError("there should be digits after '.'")
-			// [lex.backwardIndex:lex.frontIndex] -> int token
 			al.genToken(al.sourceCode[al.backwardIndex:al.frontIndex])
 			al.frontIndex++
 			al.backwardIndex = al.frontIndex
@@ -157,7 +154,6 @@ func (al *Analyser) scanStartWithNumber() {
 			al.scanFloat()
 		}
 	default:
-		// [lex.backwardIndex:lex.frontIndex] -> int token
 		al.genToken(al.sourceCode[al.backwardIndex:al.frontIndex])
 		al.backwardIndex = al.frontIndex
 	}
@@ -173,12 +169,10 @@ func (al *Analyser) scanFloat() {
 		al.scanFloat()
 	case al.sourceCode[al.frontIndex] == '.':
 		al.logError("'.' can not be appended to float")
-		// [lex.backwardIndex:lex.frontIndex] -> float token
 		al.genToken(al.sourceCode[al.backwardIndex:al.frontIndex])
 		al.frontIndex++
 		al.backwardIndex = al.frontIndex
 	default:
-		// [lex.backwardIndex:lex.frontIndex] -> float token
 		al.genToken(al.sourceCode[al.backwardIndex:al.frontIndex])
 		al.backwardIndex = al.frontIndex
 	}
@@ -193,12 +187,10 @@ func (al *Analyser) scanStartWithSymbol() {
 	case isLessGreaterColon(al.sourceCode[al.frontIndex]):
 		al.frontIndex++
 		if al.sourceCode[al.frontIndex] == '=' || (al.sourceCode[al.frontIndex-1] == '<' && al.sourceCode[al.frontIndex] == '>') {
-			// [lex.backwardIndex:lex.frontIndex+1] -> symbol token
 			al.genToken(al.sourceCode[al.backwardIndex : al.frontIndex+1])
 			al.frontIndex++
 			al.backwardIndex = al.frontIndex
 		} else {
-			// [lex.backwardIndex:lex.frontIndex] -> symbol token
 			al.genToken(al.sourceCode[al.backwardIndex:al.frontIndex])
 			al.backwardIndex = al.frontIndex
 		}
@@ -207,7 +199,6 @@ func (al *Analyser) scanStartWithSymbol() {
 		al.frontIndex++
 	default:
 		al.genToken(al.sourceCode[al.backwardIndex : al.frontIndex+1])
-		// [lex.backwardIndex:lex.frontIndex+1] -> symbol token,
 		al.frontIndex++
 		al.backwardIndex = al.frontIndex
 	}
@@ -225,6 +216,9 @@ func (al *Analyser) genToken(name []byte) {
 }
 
 func (al *Analyser) addSymbol(name []byte, mcode int) int {
+	if mcode < 18 || mcode > 20 {
+		return -1
+	}
 	for i := 0; i < len(al.SymbolTbl); i++ {
 		if string(name) == string(al.SymbolTbl[i].Name) {
 			return al.SymbolTbl[i].ID
@@ -251,8 +245,8 @@ func (al *Analyser) logError(desp string) {
 func (al *Analyser) IsTokenMatch(c int) bool {
 	m := al.Tokens[al.tokenNext].MachineCode == c
 
-	// TODO: delete
-	fmt.Println(c, "meet", al.Tokens[al.tokenNext].MachineCode)
+	// TODO: for test
+	// fmt.Println(c, "meet", al.Tokens[al.tokenNext].MachineCode)
 
 	al.tokenNext++
 	return m
