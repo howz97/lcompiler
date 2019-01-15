@@ -47,11 +47,13 @@ func parseTerm(raw string) (remain string, name string) {
 
 // isSkip check whether we need to call g.getFollowSet() for get f.followSet
 func isSkip(g, f *gramer) bool {
-	return f.willMeet(g.left)
+	tgt := make(map[string]bool)
+	tgt[g.left] = true
+	return f.willMeet(tgt)
 }
 
-func (g *gramer) willMeet(tgt string) bool {
-	if g.left == tgt {
+func (g *gramer) willMeet(tgt map[string]bool) bool {
+	if b, _ := tgt[g.left]; b {
 		return true
 	}
 	if g.holdFollowSet {
@@ -64,6 +66,7 @@ func (g *gramer) willMeet(tgt string) bool {
 				if !gramc.isTerminal && gramc.nt == g.left {
 					if i == len(partGram)-1 {
 						if gram.left != gramc.nt {
+							tgt[g.left] = true
 							if gram.willMeet(tgt) {
 								return true
 							}
@@ -71,6 +74,7 @@ func (g *gramer) willMeet(tgt string) bool {
 					} else {
 						if !partGram[i+1].isTerminal {
 							if g.lang[partGram[i+1].nt].getFirstSet().where(lex.CodeMap["ε"]) > 0 {
+								tgt[g.left] = true
 								if g.lang[partGram[i+1].nt].willMeet(tgt) {
 									return true
 								}

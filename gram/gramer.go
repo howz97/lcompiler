@@ -140,28 +140,37 @@ func (g *gramer) getFollowSet() sets {
 		g.followSet.add(0, lex.CodeMap["#"])
 		return g.followSet
 	}
-	// force traversal
+	// Force traversal
+
 	// fmt.Println("。。。。。。开始找", g.left, "的follow集")
 	for _, gram := range g.lang {
 		for _, partGram := range gram.right {
 			for i, gramc := range partGram {
+
 				if !gramc.isTerminal && gramc.nt == g.left {
+					// Arrive here if we find nonterminal symbol that equals to g in right
+
+					// TODO: follow is for test
 					// fmt.Println("乱序遍历到" + k + "开头这一行")
 					// fmt.Println("找第", i0+1, "个短句")
 					// fmt.Println("正在检测", gramc.nt)
-					if i == len(partGram)-1 {
-						if gram.left != gramc.nt && !isSkip(g, gram) {
+					if i == len(partGram)-1 { // The nonterminal symbol is at the end of production
+						if !isSkip(g, gram) {
+
 							// fmt.Println("加入", gram.left, "的follow集")
 							g.followSet.or(0, gram.getFollowSet())
 						}
-					} else {
-						if partGram[i+1].isTerminal {
+					} else { // The nonterminal symbol is not at the end of production
+						if partGram[i+1].isTerminal { // Followed by a terminal symbol
+
 							// fmt.Println("加入", partGram[i+1].t)
 							g.followSet.add(0, partGram[i+1].t)
-						} else {
+						} else { // Followed by a nonterminal symbol
+
 							// fmt.Println("加入", partGram[i+1].nt, "的first集")
 							g.followSet.or(0, g.lang[partGram[i+1].nt].getFirstSet())
 							if g.lang[partGram[i+1].nt].getFirstSet().where(lex.CodeMap["ε"]) >= 0 && !isSkip(g, g.lang[partGram[i+1].nt]) {
+
 								// fmt.Println("加入", partGram[i+1].nt, "的follow集")
 								g.followSet.or(0, g.lang[partGram[i+1].nt].getFollowSet())
 							}

@@ -25,4 +25,12 @@ begin
     ;
     r := r + 10.0;
     a := a + b;
+    begin
+        if b>=a
+        then b := b * b;
+        else while (b < a)
+            do b := b + b;
+            ;
+        ;
+    end;
 end
