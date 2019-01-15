@@ -200,20 +200,20 @@ func New(gramerfile string) *Analyser {
 // Analyse analyse the gramer of token file
 func (al *Analyser) Analyse(lexAl *lex.Analyser) []string {
 	if !al.isGramPass(lexAl) {
-		fmt.Println("\n=======================>>>>>>> Gramer Analysis: NOT PASS")
+		fmt.Println("\n=======================>> Gramer Analysis NOT PASS <<===================")
 		return nil
 	}
-	fmt.Println("\n=======================>>>>>>> Gramer Analysis: PASS!!!")
+	fmt.Println("\n=======================>> Gramer Analysis PASS!!! <<===================")
 	return nil
 }
 
 func (al *Analyser) PrintFirstSet() {
-	fmt.Println("\n\n<<<<<<<<<<<打印 FIRST SET>>>>>>>>>>>>")
+	fmt.Println("\n\n					打印 FIRST SET:")
 	for k, gram := range al.lang {
-		fmt.Println(k + ":")
+		fmt.Println(k + ": ")
 		for i := 1; i <= len(lex.CodeMap); i++ {
 			if gram.firstSet.where(i) >= 0 {
-				fmt.Print(i, "  ")
+				fmt.Print("  '" + lex.ReversCodeMap[i] + "'")
 			}
 		}
 		fmt.Println()
@@ -221,7 +221,7 @@ func (al *Analyser) PrintFirstSet() {
 }
 
 func (al *Analyser) PrintFollowSet() {
-	fmt.Println("\n\n<<<<<<<<<<<打印 FOLLOW SET>>>>>>>>>>>>")
+	fmt.Println("\n\n					打印 FOLLOW SET:")
 	for k, gram := range al.lang {
 		if gram.followSet == nil {
 			panic(k + ".followSet is nil")
@@ -229,7 +229,7 @@ func (al *Analyser) PrintFollowSet() {
 		fmt.Println(k + ":")
 		for i := 1; i <= len(lex.CodeMap); i++ {
 			if gram.followSet.where(i) >= 0 {
-				fmt.Print(i, "  ")
+				fmt.Print("  '" + lex.ReversCodeMap[i] + "'")
 			}
 		}
 		fmt.Println()
@@ -237,12 +237,12 @@ func (al *Analyser) PrintFollowSet() {
 }
 
 func (al *Analyser) PrintFATbl() {
-	fmt.Println("\n\n<<<<<<<<<<<打印 预测分析表>>>>>>>>>>>>")
+	fmt.Println("\n\n					打印 预测分析表:")
 	for k, gram := range al.lang {
 		fmt.Println("*****" + k + "*****")
 		for j := 1; j < 39; j++ {
 			if al.forecastAnalyTbl[gram.idx][j] != nil {
-				fmt.Println("遇到no.", j, "终结符，选择非终结符（", k, "）的第", al.forecastAnalyTbl[gram.idx][j].idx+1, "个右部产生式")
+				fmt.Printf("遇到'%s', 选择第%d个产生式\n", lex.ReversCodeMap[j], al.forecastAnalyTbl[gram.idx][j].idx+1)
 			}
 		}
 	}
@@ -376,7 +376,8 @@ func (al *Analyser) isGramPass(lexAl *lex.Analyser) bool {
 		// fmt.Println(termMachineCode, "列")
 		position := al.forecastAnalyTbl[nonTermIdx][termMachineCode]
 		if position == nil {
-			panic("position == nil")
+			fmt.Printf("\n[ERROR]: '%s' should not start with '%s' in line %d", top.nt, lex.ReversCodeMap[lexAl.NextCode()], lexAl.Tokens[lexAl.NextToken()].Row)
+			return false
 		}
 		gram := al.lang[top.nt]
 		if gram == nil {

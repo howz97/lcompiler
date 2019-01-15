@@ -2,10 +2,13 @@ package lex
 
 var (
 	CodeMap map[string]int
+
+	// temporary variable, deleted when refactoring the code
+	ReversCodeMap map[int]string
 )
 
 func init() {
-	CodeMap = make(map[string]int)
+	CodeMap = make(map[string]int, 39)
 	CodeMap["and"] = 1
 	CodeMap["begin"] = 2
 	CodeMap["bool"] = 3
@@ -45,4 +48,9 @@ func init() {
 	CodeMap[">="] = 37
 	CodeMap["#"] = 38
 	CodeMap["ε"] = 39
+
+	ReversCodeMap = make(map[int]string, 39)
+	for k, v := range CodeMap {
+		ReversCodeMap[v] = k
+	}
 }

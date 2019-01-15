@@ -18,6 +18,8 @@ type Token struct {
 	Name        []byte
 	MachineCode int
 	Addr        int
+
+	Row int
 }
 
 // Symbol is element of symbol table
@@ -75,13 +77,13 @@ func (al *Analyser) PrintResult() {
 
 func (al *Analyser) PrintErr() {
 	for i := 0; i < len(al.errs); i++ {
-		fmt.Printf("ERROR[id=%d] >> line %d: %s", al.errs[i].id, al.errs[i].row, al.errs[i].description)
+		fmt.Printf("[ERROR]id=%d: %s in line %d", al.errs[i].id, al.errs[i].description, al.errs[i].row)
 		fmt.Println()
 	}
 	if len(al.errs) == 0 {
-		fmt.Println("\n=======================>>>>>>> Lexical analysis: PASS!!!")
+		fmt.Println("\n=======================>> Lexical analysis PASS!!! <<===================")
 	} else {
-		fmt.Printf("\n=======================>>>>>>> Lexical analysis: total %d errors", len(al.errs))
+		fmt.Printf("\n=======================>> Lexical analysis total %d errors <<===================", len(al.errs))
 	}
 }
 
@@ -211,6 +213,7 @@ func (al *Analyser) genToken(name []byte) {
 		Name:        name,
 		MachineCode: mcode,
 		Addr:        al.addSymbol(name, mcode),
+		Row:         al.currentRow,
 	}
 	al.Tokens = append(al.Tokens, t)
 }
@@ -247,6 +250,9 @@ func (al *Analyser) IsTokenMatch(c int) bool {
 
 	// TODO: for test
 	// fmt.Println(c, "meet", al.Tokens[al.tokenNext].MachineCode)
+	if !m {
+		fmt.Printf("\n[ERROR]: should meet '%s' rather than '%s' in line %d", ReversCodeMap[c], string(al.Tokens[al.tokenNext].Name), al.Tokens[al.tokenNext].Row)
+	}
 
 	al.tokenNext++
 	return m
