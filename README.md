@@ -1,2 +1,2 @@
 # lcompiler
-Experiment of NCEPU compilation course. Very simple...
+Lab of compiler course
