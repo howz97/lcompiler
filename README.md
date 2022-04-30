@@ -1,2 +1,2 @@
 # lcompiler
-Lab of compiler course
+Naive compiler
