@@ -1,2 +1,1 @@
-# lcompiler
-Naive compiler
+A naive compiler
